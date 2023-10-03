@@ -14,14 +14,13 @@ Make sure you have the following dependencies installed:
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-username/your-repository.git
-   cd your-repository
+   https://github.com/amirmahdavieh/Face-Detection.git
    ```
 
 2. Run the script:
 
    ```bash
-   python face_detection.py
+   python camera.py
    ```
 
    Press 'q' to exit the video feed.
