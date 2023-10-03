@@ -1,47 +1,55 @@
+from ultralytics import YOLO
 import cv2
+import time
 
-face_cascade = cv2.CascadeClassifier("haarcascade_frontalface_default.xml")
+model = YOLO("yolov8n-face.pt")
 
-eye_cascade = cv2.CascadeClassifier("haarcascade_eye_tree_eyeglasses.xml")
-
-# capture frames from a camera
 cap = cv2.VideoCapture(0)
 
-# loop runs if capturing has been initialized.
-while 1:
+second = 0
+start_time = time.time()
 
-    # reads frames from a camera
-    ret, img = cap.read()
+while True:
+    ret, frame = cap.read()
+    frame = cv2.flip(frame, 1)
 
-    # convert to gray scale of each frames
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    inference_time = time.time()
+    results = model(frame)
+    end_inference_time = time.time()
+    difference = abs(inference_time-end_inference_time)
 
-    # Detects faces of different sizes in the input image
-    faces = face_cascade.detectMultiScale(gray, 1.3, 5)
+    boxes = results[0].boxes
 
-    for (x, y, w, h) in faces:
-        # To draw a rectangle in a face
-        cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 0), 2)
-        roi_gray = gray[y:y + h, x:x + w]
-        roi_color = img[y:y + h, x:x + w]
+    if not ret:
+        continue
 
-        # Detects eyes of different sizes in the input image
-        eyes = eye_cascade.detectMultiScale(roi_gray)
+    noObject = True
 
-        # To draw a rectangle in eyes
-        for (ex, ey, ew, eh) in eyes:
-            cv2.rectangle(roi_color, (ex, ey), (ex + ew, ey + eh), (0, 127, 255), 2)
+    for box in boxes:
+        top_left_x = int(box.xyxy.tolist()[0][0])
+        top_left_y = int(box.xyxy.tolist()[0][1])
+        buttom_right_x = int(box.xyxy.tolist()[0][2])
+        buttom_right_y = int(box.xyxy.tolist()[0][3])
 
-            # Display an image in a window
-    cv2.imshow('img', img)
+        if isinstance(top_left_x, int):
+            noObject = False
+            end_time = time.time()
+            cv2.putText(frame, "MATCH!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 255, 0), 3)
+            cv2.putText(frame, f'{str(round(end_time - start_time))}s', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 3)
+            second += 1
 
-    # Wait for Esc key to stop
-    k = cv2.waitKey(5)
-    if k == 27:
+        cv2.rectangle(frame, (top_left_x, top_left_y), (buttom_right_x, buttom_right_y), (50, 200, 129), 2)
+
+    if noObject:
+        second = 0
+        start_time = time.time()
+        cv2.putText(frame, "NOT FOUND!", (20, 450), cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255), 3)
+
+    cv2.imshow("video frame", frame)
+    key_pressed = cv2.waitKey(1) & 0xFF
+
+    if key_pressed == ord('q'):
         break
 
-# Close the window
 cap.release()
-
-# De-allocate any associated memory usage
 cv2.destroyAllWindows()
